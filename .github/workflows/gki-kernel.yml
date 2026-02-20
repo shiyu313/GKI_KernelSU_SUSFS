@@ -54,7 +54,7 @@ on:
         type: boolean
         default: false
 jobs:
-  build-kernel-kernelsu-susfs:
+    build-kernel-kernelsu-susfs:
     runs-on: ubuntu-latest
     env:
     CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
