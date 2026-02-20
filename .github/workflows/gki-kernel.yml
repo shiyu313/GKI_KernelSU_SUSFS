@@ -64,6 +64,7 @@ jobs:
     steps:
       - name: Maximize Build Space
         uses: AdityaGarg8/remove-unwanted-software@v5
+
         with:
           remove-dotnet: 'true'          # Frees ~2 GB
           remove-android: 'true'         # Frees ~9 GB
