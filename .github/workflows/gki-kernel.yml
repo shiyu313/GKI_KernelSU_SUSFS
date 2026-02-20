@@ -179,7 +179,8 @@ jobs:
 
           # Initialize and sync kernel source
           echo "Initializing and syncing kernel source..."
-          FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.os_patch_level }}"
+                    # 强制指定分支为最新的公共分支，忽略 patch_level 日期限制
+          FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}"
           $REPO init --depth=1 --u https://android.googlesource.com/kernel/manifest -b common-${FORMATTED_BRANCH} --repo-rev=v2.16
           REMOTE_BRANCH=$(git ls-remote https://android.googlesource.com/kernel/common ${FORMATTED_BRANCH})
           DEFAULT_MANIFEST_PATH=.repo/manifests/default.xml
@@ -538,6 +539,32 @@ jobs:
           
           # Remove check_defconfig
           sed -i 's/check_defconfig//' ./common/build.config.gki
+          - name: 注入极致优化配置
+       run: |
+          echo "正在进入配置目录: $CONFIG..."
+          cd "$CONFIG"
+          CONFIG_FILE="./common/arch/arm64/configs/gki_defconfig"
+
+          echo "1. 注入 MGLRU v2 & ZRAM 优化..."
+          echo "CONFIG_LRU_GEN=y" >> "$CONFIG_FILE"
+          echo "CONFIG_LRU_GEN_ENABLED=y" >> "$CONFIG_FILE"
+          echo "CONFIG_ZRAM_BACKEND_ZSTD=y" >> "$CONFIG_FILE"
+
+          echo "2. 注入存储与 F2FS 优化..."
+          echo "CONFIG_F2FS_FS_COMPRESSION=y" >> "$CONFIG_FILE"
+          echo "CONFIG_MQ_IOSCHED_DEADLINE=y" >> "$CONFIG_FILE"
+
+          echo "3. 注入调度与网络优化 (ADPF/UCLAMP)..."
+          echo "CONFIG_UCLAMP_TASK=y" >> "$CONFIG_FILE"
+          echo "CONFIG_UCLAMP_BUCKETS_COUNT=20" >> "$CONFIG_FILE"
+
+          echo "4. 注入降功耗与精简内核配置..."
+          sed -i 's/CONFIG_DEBUG_INFO=y/CONFIG_DEBUG_INFO=n/' "$CONFIG_FILE"
+          sed -i 's/CONFIG_FTRACE=y/CONFIG_FTRACE=n/' "$CONFIG_FILE"
+          echo "CONFIG_RCU_NOCB_CPU=y" >> "$CONFIG_FILE"
+
+          echo "5. 注入 Android 16 压力监控..."
+          echo "CONFIG_PSI=y" >> "$CONFIG_FILE"
 
       - name: 配置内核名称
         run: |
